@@ -383,6 +383,8 @@ def get_race_details():
     db = connect_db()
     cursor = db.cursor()
 
+
+
     raceID = input("Enter race ID: ")
 
     sql = """
