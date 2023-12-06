@@ -234,13 +234,16 @@ def get_pr(): #this command finds the athletes fastest time
     cursor = db.cursor()
 
     if gender == "male":
-        sql = ("SELECT MIN(time) FROM MaleRaceResults "
-               "WHERE athlete_id IN "
-               "(SELECT athlete_id FROM Athletes WHERE first_name = %s AND last_name = %s AND school_name = %s)")
+        sql =  """
+               SELECT MIN(time) FROM MaleRaceResults 
+               WHERE athlete_id IN 
+               (SELECT athlete_id FROM Athletes WHERE first_name = %s AND last_name = %s AND school_name = %s)
+               """
     elif gender == "female":
-        sql = ("SELECT MIN(time) FROM FemaleRaceResults "
-               "WHERE athlete_id IN "
-               "(SELECT athlete_id FROM Athletes WHERE first_name = %s AND last_name = %s AND school_name = %s)")
+        sql = """SELECT MIN(time) FROM FemaleRaceResults 
+               WHERE athlete_id IN 
+               (SELECT athlete_id FROM Athletes WHERE first_name = %s AND last_name = %s AND school_name = %s)
+               """
     else:
         print("Invalid gender input. Please enter 'male' or 'female'.")
         return
@@ -266,11 +269,13 @@ def find_placement(): #this shows the place the athlete came in the race for men
     cursor = db.cursor()
 
     if gender == "male":
-        sql = ("SELECT COUNT(*) + 1 AS position FROM MaleRaceResults "
-               "WHERE race_id = %s AND time < (SELECT time FROM MaleRaceResults WHERE athlete_id = %s AND race_id = %s)")
+        sql = """
+               SELECT COUNT(*) + 1 AS position FROM MaleRaceResults 
+               WHERE race_id = %s AND time < (SELECT time FROM MaleRaceResults WHERE athlete_id = %s AND race_id = %s)"""
     elif gender == "female":
-        sql = ("SELECT COUNT(*) + 1 AS position FROM FemaleRaceResults "
-               "WHERE race_id = %s AND time < (SELECT time FROM FemaleRaceResults WHERE athlete_id = %s AND race_id = %s)")
+        sql = """
+               SELECT COUNT(*) + 1 AS position FROM FemaleRaceResults 
+               WHERE race_id = %s AND time < (SELECT time FROM FemaleRaceResults WHERE athlete_id = %s AND race_id = %s)"""
     else:
         print("Invalid gender input. Please enter 'male' or 'female'.")
         return
@@ -307,10 +312,10 @@ def get_athlete_information():#used to learn more about the athlete from their i
     db.close()
 
 def get_athlete_information():
-    athleteID = input("Enter athlete ID: ")
-
     db = connect_db()
     cursor = db.cursor()
+
+    athleteID = input("Enter athlete ID: ")
 
     sql = "SELECT first_name, last_name, grade, school_name FROM Athletes WHERE athlete_id = %s"
     inputs = (athleteID,)
@@ -339,90 +344,51 @@ def show_all_athletes():
     cursor.close()
     db.close()
 
-def get_team_info():
-    teamID = input("Enter team ID: ")
-
+def get_race_details(): #this function connects 5 tables and shows details on each of the runners and the races
     db = connect_db()
     cursor = db.cursor()
-
-    # Fetch Team Captain
-    captain_sql = (
-        "SELECT A.first_name, A.last_name "      
-        "FROM Athletes A JOIN Teams T ON A.athlete_id = T.captain_id "
-        "WHERE T.team_id = %s")
-    cursor.execute(captain_sql, (teamID,))
-    captain_result = cursor.fetchone()
-    print(f"Team Captain for Team ID {teamID}: {captain_result[0]} {captain_result[1]}")
-    # Fetch Fastest Male Athlete
-    fastest_male_sql = (
-        "SELECT athlete_id, MIN(time) as best_time "
-        "FROM MaleRaceResults "
-        "WHERE team_id = %s "
-        "GROUP BY athlete_id "
-        "ORDER BY best_time ASC LIMIT 1")
-    cursor.execute(fastest_male_sql, (teamID,))
-    male_result = cursor.fetchone()
-    print(f"Fastest Male Athlete ID {male_result[0]} with time {male_result[1]} for Team ID {teamID}")
-
-    # Fetch Fastest Female Athlete
-    fastest_female_sql = (
-        "SELECT athlete_id, MIN(time) as best_time "
-        "FROM FemaleRaceResults "
-        "WHERE team_id = %s "
-        "GROUP BY athlete_id "
-        "ORDER BY best_time ASC LIMIT 1")
-    cursor.execute(fastest_female_sql, (teamID,))
-    femaleOutput = cursor.fetchone()
-
-    print(f"Fastest Female Athlete ID {femaleOutput[0]} with time {femaleOutput[1]} for Team ID {teamID}")
-    cursor.close()
-    db.close()
-
-
-def get_race_details():
-    db = connect_db()
-    cursor = db.cursor()
-
 
     raceID = input("Enter race ID: ")
+    gender = input("Enter gender for the results male or female: ").lower()
 
-    sql = """
-    SELECT 
-        R.race_id,
-        R.race_name,
-        R.race_location,
-        RP.race_date,
-        T.team_id,
-        T.coach_name,
-        A.athlete_id,
-        A.first_name,
-        A.last_name,
-        A.grade,
-        A.school_name,
-        MRR.time AS male_athlete_time
-    FROM 
-        Races R
-    JOIN 
-        RaceParticipants RP ON R.race_id = RP.race_id
-    JOIN 
-        Teams T ON RP.team_id = T.team_id
-    JOIN 
-        Athletes A ON T.school_name = A.school_name
-    JOIN 
-        MaleRaceResults MRR ON A.athlete_id = MRR.athlete_id AND T.team_id = MRR.team_id
-    WHERE 
-        R.race_id = %s;
-    """
+    if gender == "male":
+        sql = """
+        SELECT R.race_id, R.race_name, R.race_location, RP.race_date, T.team_id, T.coach_name, A.athlete_id, A.first_name, A.last_name, A.grade, A.school_name, MRR.time
+        FROM Races R
+        JOIN RaceParticipants RP ON R.race_id = RP.race_id
+        JOIN Teams T ON RP.team_id = T.team_id
+        JOIN Athletes A ON T.school_name = A.school_name
+        JOIN MaleRaceResults MRR ON A.athlete_id = MRR.athlete_id AND T.team_id = MRR.team_id
+        WHERE R.race_id = %s
+        ORDER BY MRR.time ASC;
+        """
+    elif gender == "female": #needs a seperate table for females as race results females is different than males
+        sql = """
+        SELECT R.race_id, R.race_name, R.race_location, RP.race_date, T.team_id, T.coach_name, A.athlete_id, A.first_name, A.last_name, A.grade, A.school_name, FRR.time
+        FROM Races R
+        JOIN RaceParticipants RP ON R.race_id = RP.race_id
+        JOIN Teams T ON RP.team_id = T.team_id
+        JOIN Athletes A ON T.school_name = A.school_name
+        JOIN FemaleRaceResults FRR ON A.athlete_id = FRR.athlete_id AND T.team_id = FRR.team_id
+        WHERE R.race_id = %s
+        ORDER BY FRR.time ASC;
+        """
+    else:
+        print("Invalid gender input. Please enter 'male' or 'female'.")
+        cursor.close()
+        db.close()
+        return
+
     inputs = (raceID,)
     cursor.execute(sql, inputs)
 
-    queryOutput = cursor.fetchall()
-    if queryOutput:
+    query_output = cursor.fetchall()
+    if query_output:
         print("Race Details:")
-        for row in queryOutput:
-            print(f"Race ID: {row[0]}, Race Name: {row[1]}, Location: {row[2]}, Date: {row[3]}, "
-                  f"Team ID: {row[4]}, Coach: {row[5]}, Athlete ID: {row[6]}, Athlete Name: {row[7]} {row[8]}, "
-                  f"Grade: {row[9]}, School: {row[10]}, Time: {row[11]}")
+        print(f"Race ID: {query_output[0][0]}, Race Name: {query_output[0][1]}, Location: {query_output[0][2]}, Date: {query_output[0][3]}")
+
+        for row in query_output:
+            print(f"4Team ID: {row[4]}, Coach: {row[5]}, Athlete ID: {row[6]}, Athlete Name: {row[7]} {row[8]}, Grade: {row[9]}, School: {row[10]}, Time: {row[11]}")
     else:
         print("No details found for the given race ID.")
 
@@ -485,8 +451,6 @@ def main():
                 print("10: Get PR")
                 print("11: Find Placement")
                 print("12: Show All Athletes")
-                print("13: Get team info")
-                print("14: Get all race Runners")
                 print("Enter your command or use 'exit' to quit: ")
 
                 userCommand = input()
@@ -497,8 +461,8 @@ def main():
                     get_athlete_id()
                 elif  userCommand == '3':
                     get_race_id()
-                elif  userCommand == '4':
-                    show_race_data()
+                elif userCommand == '4':
+                    get_race_details()
                 elif  userCommand == '5':
                     update_runner_time()
                 elif  userCommand == '6':
@@ -515,8 +479,6 @@ def main():
                     find_placement()
                 elif  userCommand == '12':
                     show_all_athletes()
-                elif  userCommand == '13':
-                    get_team_info()
                 else:
                     break
 
@@ -530,7 +492,6 @@ def main():
             print("5: Get PR")
             print("6: Find Placement")
             print("7: Show All Athletes")
-            print("8: Get team info")
             print("Enter your  userCommand (or 'exit' to quit): ")
 
             userCommand = input()
@@ -539,7 +500,7 @@ def main():
             elif  userCommand == '2':
                 get_race_id()
             elif  userCommand == '3':
-                show_race_data()
+                get_race_details()
             elif  userCommand == '4':
                 get_team_id()
             elif  userCommand == '5':
@@ -548,8 +509,6 @@ def main():
                 find_placement()
             elif  userCommand == '7':
                 show_all_athletes()
-            elif  userCommand == '8':
-                get_team_info()
             else:
                 break
 
