@@ -1,7 +1,7 @@
 import mysql.connector
 
 
-def connect_db():#connects to database
+def databaseConnect():#connects to database
     return mysql.connector.connect(
         host="localhost",
         user="root",
@@ -12,10 +12,10 @@ def connect_db():#connects to database
     )
 
 
-# used to add an athlete to athlete table
-def add_athlete():
-    db = connect_db()
-    cursor = db.cursor()
+
+def add_athlete():# this is used to add a athlete to athlete table
+    db = databaseConnect() #databaseConnect makes it alot simpler to connect to the database as now you only need to call a function.
+    cursor = db.cursor() #you can pass the cursor through the def but not the db
     firstName = input("Enter athlete's first name: ")
     lastName = input("Enter athlete's last name: ")
     grade = input("Enter athlete's grade: ")
@@ -24,14 +24,14 @@ def add_athlete():
     sql = "INSERT INTO Athletes (first_name, last_name, grade, school_name) VALUES (%s, %s, %s, %s)"
     inputs = (firstName, lastName, grade, schoolName)
     cursor.execute(sql, inputs)
-    db.commit()
+    db.commit() #commits the data to the database
     print("1 athlete added.")
     cursor.close()
     db.close()
 
 
 def get_athlete_id():#this is used to get althete id to use for other functions
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
     firstName = input("Enter athlete's first name: ")
     lastName = input("Enter athlete's last name: ")
@@ -44,17 +44,17 @@ def get_athlete_id():#this is used to get althete id to use for other functions
     db.close()
 
     if queryOutput:
-        print("Athlete ID:", queryOutput)
+        print("Athlete ID:", queryOutput[0])
         return None
     else:
         print("No athlete found with the provided details.")
         return None
 
-def get_race_id():
-    race_name = input("Enter race name: ")
-
-    db = connect_db()
+def get_race_id():#this is used so that you can get the race id with the race name to use for other operations
+    db = databaseConnect()
     cursor = db.cursor()
+
+    race_name = input("Enter race name: ")
 
     sql = "SELECT race_id FROM Races WHERE race_name = %s"
     data = (race_name,) #neeeds to be a list or tuple
@@ -73,39 +73,17 @@ def get_race_id():
         return None
 
 
-def show_race_data():
-    raceID = input("Enter race ID: ")
-    gender = input("Do you want to see male or female data ").lower() #uses lower to ignore capitalization
-
-    db = connect_db()
+def update_runner_time():#this is used so that you can alter a runners time
+    db = databaseConnect()
     cursor = db.cursor()
 
-    if gender == "male":
-        sql = "SELECT athlete_id, time  FROM MaleRaceResults WHERE race_id = %s ORDER BY time"
-    elif gender == "female":
-        sql = "SELECT athlete_id, time FROM FemaleRaceResults WHERE race_id = %s ORDER BY time"
-    else:
-        print("Invalid gender input.")
-        db.close()
-        return
-
-    cursor.execute(sql, (raceID,))#this is a list becuase sql needs lists
-    queryOutputs = cursor.fetchall()
-
-    cursor.close()
-    db.close()
-
-    for A in queryOutputs:
-        print(A)
-
-def update_runner_time():
     athleteID = input("Enter athlete ID: ")
     raceID = input("Enter race ID: ")
-    newTime = input("Enter new time: ")
+    newTime = input("Enter new time in format 00:00:00  ")
     gender = input("Enter gender (male/female): ")
 
-    db = connect_db()
-    cursor = db.cursor()
+
+    inputs = (newTime, athleteID, raceID)
 
     if gender == 'male':
         sql = "UPDATE MaleRaceResults SET time = %s WHERE athlete_id = %s AND race_id = %s"
@@ -115,9 +93,9 @@ def update_runner_time():
         print("Invalid gender entered.")
         cursor.close()
         db.close()
+        #need to close them and return so it does not print the runner time updated successfully
         return
 
-    inputs = (newTime, athleteID, raceID)
     cursor.execute( sql, inputs)
     db.commit()
 
@@ -127,9 +105,10 @@ def update_runner_time():
     db.close()
 
 
-def delete_runner_time():
-    db = connect_db()
+def delete_runner_time(): #this is used so that you can remove a runners time from the race results
+    db = databaseConnect()
     cursor = db.cursor()
+
     athleteID = input("Enter athlete id: ")
     raceID = input("Enter race ID: ")
     gender = input("Enter gender male or female: ")
@@ -155,16 +134,14 @@ def delete_runner_time():
     cursor.close()
     db.close()
 
-def add_male_runner_time():
-    db = connect_db()
+def add_male_runner_time():#used for adding times to the male racre results table
+    db = databaseConnect()
     cursor = db.cursor()
 
     raceID = input("Enter race ID: ")
     athleteID = input("Enter athlete ID: ")
     time = input("Enter time in form 00:??:?? : ")
     teamID = input("Enter TeamID: ")
-
-
 
     sql = "INSERT INTO MaleRaceResults (race_id, athlete_id, team_id, time) VALUES (%s, %s, %s, %s)"
     inputs = (raceID, athleteID, teamID, time)
@@ -179,15 +156,13 @@ def add_male_runner_time():
 
 
 def add_female_runner_time():
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
 
     raceID = input("Enter race ID: ")
     athleteID = input("Enter athlete ID: ")
     time = input("Enter time in form 00:??:?? ")
     teamID = input("Enter TeamID: ")
-
-
 
     sql = "INSERT INTO FemaleRaceResults (race_id, athlete_id, team_id, time) VALUES (%s, %s, %s, %s)"
     inputs = (raceID, athleteID, teamID, time)
@@ -200,22 +175,19 @@ def add_female_runner_time():
     cursor.close()
     db.close()
 
-
-
-
 def get_team_id(): #this is needed for get team status
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
-    school_name = input("Enter school name: ")
+    schoolName = input("Enter school name: ")
 
 
     sql = "SELECT team_id FROM Teams WHERE school_name = %s"
-    inputs = (school_name,)
+    inputs = (schoolName,)
     cursor.execute(sql,  inputs)
 
     queryOutput = cursor.fetchone()
     if queryOutput:
-        print(f"Team ID for {school_name}: {queryOutput[0]}")
+        print(f"Team ID for {schoolName}: {queryOutput[0]}")
     else:
         print("No team found for the given school name.")
 
@@ -225,20 +197,20 @@ def get_team_id(): #this is needed for get team status
 
 
 def get_pr(): #this command finds the athletes fastest time
-    first_name = input("Enter athlete's first name: ")
-    last_name = input("Enter athlete's last name: ")
-    school_name = input("Enter school name: ")
-    gender = input("Enter gender (male/female): ").lower()
-
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
+
+    firstName = input("Enter athlete's first name: ")
+    lastName = input("Enter athlete's last name: ")
+    schoolName = input("Enter school name: ")
+    gender = input("Enter gender (male/female): ").lower()
 
     if gender == "male":
         sql =  """
                SELECT MIN(time) FROM MaleRaceResults 
                WHERE athlete_id IN 
                (SELECT athlete_id FROM Athletes WHERE first_name = %s AND last_name = %s AND school_name = %s)
-               """
+               """ #for long queries you can use """ and lay it our on seperate lines to increase readability
     elif gender == "female":
         sql = """SELECT MIN(time) FROM FemaleRaceResults 
                WHERE athlete_id IN 
@@ -248,25 +220,24 @@ def get_pr(): #this command finds the athletes fastest time
         print("Invalid gender input. Please enter 'male' or 'female'.")
         return
 
-    inputs = (first_name, last_name, school_name)
+    inputs = (firstName, lastName, schoolName)
     cursor.execute(sql,  inputs)
 
     queryOutput = cursor.fetchone()
     if queryOutput:
-        print(f"PR for {first_name} {last_name} ({gender}): {queryOutput[0]}")
+        print(f"PR for {firstName} {lastName} is: {queryOutput[0]}")
     else:
         print("No PR found for the given athlete.")
-
     cursor.close()
     db.close()
 
 def find_placement(): #this shows the place the athlete came in the race for men or women
+    db = databaseConnect()
+    cursor = db.cursor()
+
     raceID = input("Enter race ID: ")
     athleteID = input("Enter athlete ID: ")
     gender = input("Enter gender (male/female): ").lower()
-
-    db = connect_db()
-    cursor = db.cursor()
 
     if gender == "male":
         sql = """
@@ -293,10 +264,10 @@ def find_placement(): #this shows the place the athlete came in the race for men
     db.close()
 
 def get_athlete_information():#used to learn more about the athlete from their id
-    athleteID = input("Enter athlete ID: ")
-
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
+
+    athleteID = input("Enter athlete ID: ")
 
     sql = "SELECT first_name, last_name, grade, school_name FROM Athletes WHERE athlete_id = %s"
     inputs = (athleteID,)#needs to be in list formating
@@ -312,7 +283,7 @@ def get_athlete_information():#used to learn more about the athlete from their i
     db.close()
 
 def get_athlete_information():
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
 
     athleteID = input("Enter athlete ID: ")
@@ -331,7 +302,7 @@ def get_athlete_information():
     db.close()
 
 def show_all_athletes():
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
 
     cursor.execute("SELECT athlete_id, first_name, last_name, grade, school_name FROM Athletes")
@@ -345,7 +316,7 @@ def show_all_athletes():
     db.close()
 
 def get_race_details(): #this function connects 5 tables and shows details on each of the runners and the races
-    db = connect_db()
+    db = databaseConnect()
     cursor = db.cursor()
 
     raceID = input("Enter race ID: ")
@@ -388,7 +359,7 @@ def get_race_details(): #this function connects 5 tables and shows details on ea
         print(f"Race ID: {query_output[0][0]}, Race Name: {query_output[0][1]}, Location: {query_output[0][2]}, Date: {query_output[0][3]}")
 
         for row in query_output:
-            print(f"4Team ID: {row[4]}, Coach: {row[5]}, Athlete ID: {row[6]}, Athlete Name: {row[7]} {row[8]}, Grade: {row[9]}, School: {row[10]}, Time: {row[11]}")
+            print(f"Team ID: {row[4]}, Coach: {row[5]}, Athlete ID: {row[6]}, Athlete Name: {row[7]} {row[8]}, Grade: {row[9]}, School: {row[10]}, Time: {row[11]}")
     else:
         print("No details found for the given race ID.")
 
@@ -396,9 +367,8 @@ def get_race_details(): #this function connects 5 tables and shows details on ea
     db.close()
 
 
-def facilitator_login(): #this is for facilitators to login as only they can change the database 
-   return True
-   db = connect_db()
+def facilitator_login(): #this is for facilitators to login as only they can change the database
+   db = databaseConnect()
    cursor = db.cursor()
 
    facilitator_id = input("Enter faciletator id: ")
@@ -431,12 +401,11 @@ def facilitator_login(): #this is for facilitators to login as only they can cha
 
 def main():
 
-    #print("Are you a facilitator? (Y/N)")
-    # userCommand = input()
-    userCommand = "Y"
+    print("Are you a facilitator? (Y/N)")
+    userCommand = input()
+
     if  userCommand == "Y":
-        #holder = facilitator_login()
-        holder = True
+        holder = facilitator_login()
         if holder == True:
             while True:
                 print("1: Add Athlete")
@@ -479,8 +448,10 @@ def main():
                     find_placement()
                 elif  userCommand == '12':
                     show_all_athletes()
-                else:
+                elif  userCommand == 'exit':
                     break
+                else:
+                    print("Wrong input please try again")
 
                 # ... other elif conditions for each function
     else:
@@ -492,7 +463,7 @@ def main():
             print("5: Get PR")
             print("6: Find Placement")
             print("7: Show All Athletes")
-            print("Enter your  userCommand (or 'exit' to quit): ")
+            print("Enter your  userCommand or use 'exit' to quit: ")
 
             userCommand = input()
             if  userCommand == '1':
@@ -509,8 +480,10 @@ def main():
                 find_placement()
             elif  userCommand == '7':
                 show_all_athletes()
-            else:
+            elif  userCommand == 'exit':
                 break
+            else:
+                print("Wrong input please try again")
 
 
 if __name__ == "__main__":
